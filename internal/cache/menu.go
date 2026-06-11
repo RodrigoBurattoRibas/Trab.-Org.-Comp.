@@ -94,6 +94,10 @@ func printMenu(out io.Writer, config Config) {
 	fmt.Fprintf(out, "Cache: %d bytes | Bloco: %d bytes | Associatividade: %d\n", config.CacheSize, config.BlockSize, config.Associativity)
 	fmt.Fprintf(out, "Bits endereço: %d | Política: %s | Verbose: %s\n", config.AddressBits, config.Policy, verbose)
 	fmt.Fprintf(out, "Arquivo: %s\n", valueOrDash(config.InputPath))
+	if layout, err := DeriveBitLayout(config); err == nil {
+		fmt.Fprintf(out, "Linhas: %d | Conjuntos: %d\n", layout.NumLines, layout.NumSets)
+		fmt.Fprintf(out, "Campos: TAG=%d bits | Index=%d bits | OFFSET=%d bits\n", layout.TagBits, layout.IndexBits, layout.OffsetBits)
+	}
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "1 - Informar tamanho da cache")
 	fmt.Fprintln(out, "2 - Informar tamanho do bloco")

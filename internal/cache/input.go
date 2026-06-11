@@ -32,7 +32,7 @@ func ReadAddresses(path string, addrBits uint) ([]addressInput, error) {
 			continue
 		}
 
-		value, err := strconv.ParseUint(text, 0, 64)
+		value, err := parseAddressValue(text)
 		if err != nil {
 			return nil, fmt.Errorf("endereço inválido na linha %d: %q", lineNumber, text)
 		}
@@ -49,4 +49,20 @@ func ReadAddresses(path string, addrBits uint) ([]addressInput, error) {
 	}
 
 	return addresses, nil
+}
+
+func parseAddressValue(text string) (uint64, error) {
+	if strings.HasPrefix(text, "0x") || strings.HasPrefix(text, "0X") {
+		if len(text) == 2 {
+			return 0, fmt.Errorf("hexadecimal vazio")
+		}
+		return strconv.ParseUint(text[2:], 16, 64)
+	}
+
+	for _, char := range text {
+		if char < '0' || char > '9' {
+			return 0, fmt.Errorf("decimal inválido")
+		}
+	}
+	return strconv.ParseUint(text, 10, 64)
 }

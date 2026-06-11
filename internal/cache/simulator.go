@@ -3,7 +3,6 @@ package cache
 import (
 	"fmt"
 	"io"
-	"strconv"
 )
 
 func newCache(config Config, layout BitLayout) Cache {
@@ -16,7 +15,7 @@ func newCache(config Config, layout BitLayout) Cache {
 
 // CalculateAddressFields decompõe um endereço físico em tag, index e offset.
 func CalculateAddressFields(input addressInput, layout BitLayout, addrBits uint) (AddressFields, error) {
-	value, err := strconv.ParseUint(input.Raw, 0, 64)
+	value, err := parseAddressValue(input.Raw)
 	if err != nil {
 		return AddressFields{}, fmt.Errorf("endereço inválido na linha %d: %q", input.Line, input.Raw)
 	}

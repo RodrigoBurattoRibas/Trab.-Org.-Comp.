@@ -1,6 +1,9 @@
 package cache
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestReadAddressesSupportsHexDecimalCommentsAndBlankLines(t *testing.T) {
 	path := createTempAddressFile(t, `
@@ -28,20 +31,44 @@ func TestReadAddressesSupportsHexDecimalCommentsAndBlankLines(t *testing.T) {
 
 func TestReadAddressesRejectsInvalidAndOutOfRangeAddresses(t *testing.T) {
 	tests := []struct {
-		name    string
-		content string
-		bits    uint
+		name       string
+		content    string
+		bits       uint
+		wantErrMsg string
 	}{
-		{name: "invalido", content: "xyz\n", bits: 16},
-		{name: "fora-do-espaco", content: "0x10000\n", bits: 16},
-		{name: "vazio", content: "# apenas comentario\n\n", bits: 16},
+		{name: "texto-invalido", content: "xyz\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "hexadecimal-sem-prefixo", content: "FF\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "hexadecimal-com-zero-sem-prefixo", content: "00FF\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "decimal-comeca-com-letra", content: "abc123\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "decimal-termina-com-letra", content: "123abc\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "numero-negativo", content: "-1\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "hexadecimal-sem-digitos", content: "0x\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "prefixo-binario-nao-suportado", content: "0b1010\n", bits: 16, wantErrMsg: "endereço inválido na linha 1"},
+		{name: "fora-do-espaco", content: "0x10000\n", bits: 16, wantErrMsg: "endereço fora do espaço permitido na linha 1"},
+		{name: "vazio", content: "# apenas comentario\n\n", bits: 16, wantErrMsg: "arquivo de entrada vazio"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if _, err := ReadAddresses(createTempAddressFile(t, tt.content), tt.bits); err == nil {
+			_, err := ReadAddresses(createTempAddressFile(t, tt.content), tt.bits)
+			if err == nil {
 				t.Fatalf("ReadAddresses deveria retornar erro")
 			}
+			if !strings.Contains(err.Error(), tt.wantErrMsg) {
+				t.Fatalf("erro incorreto: got %q want conter %q", err.Error(), tt.wantErrMsg)
+			}
 		})
+	}
+}
+
+func TestReadAddressesReturnsReadError(t *testing.T) {
+	longLine := strings.Repeat("1", 70_000)
+
+	_, err := ReadAddresses(createTempAddressFile(t, longLine), 16)
+	if err == nil {
+		t.Fatalf("ReadAddresses deveria retornar erro de leitura")
+	}
+	if !strings.Contains(err.Error(), "erro ao ler o arquivo") {
+		t.Fatalf("erro incorreto: got %q want conter %q", err.Error(), "erro ao ler o arquivo")
 	}
 }

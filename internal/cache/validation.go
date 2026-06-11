@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-// verifica a consistência da configuração antes da simulação.
-func ValidateParameters(config Config) (BitLayout, error) {
+// DeriveBitLayout valida os parâmetros numéricos e calcula os campos da cache.
+func DeriveBitLayout(config Config) (BitLayout, error) {
 	if config.CacheSize == 0 {
 		return BitLayout{}, fmt.Errorf("o tamanho da cache deve ser maior que zero")
 	}
@@ -34,19 +34,6 @@ func ValidateParameters(config Config) (BitLayout, error) {
 	if config.Policy != PolicyLRU && config.Policy != PolicyFIFO {
 		return BitLayout{}, fmt.Errorf("política de substituição inválida: use LRU ou FIFO")
 	}
-	if config.InputPath == "" {
-		return BitLayout{}, fmt.Errorf("informe o caminho do arquivo de entrada")
-	}
-	info, err := os.Stat(config.InputPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return BitLayout{}, fmt.Errorf("arquivo de entrada inexistente: %s", config.InputPath)
-		}
-		return BitLayout{}, fmt.Errorf("não foi possível acessar o arquivo: %w", err)
-	}
-	if info.IsDir() {
-		return BitLayout{}, fmt.Errorf("o caminho informado é um diretório, não um arquivo")
-	}
 
 	numLines := config.CacheSize / config.BlockSize
 	if config.Associativity > numLines {
@@ -71,6 +58,29 @@ func ValidateParameters(config Config) (BitLayout, error) {
 		return BitLayout{}, fmt.Errorf("bits de endereço insuficientes para index e offset")
 	}
 	layout.TagBits = config.AddressBits - layout.IndexBits - layout.OffsetBits
+
+	return layout, nil
+}
+
+// verifica a consistência da configuração antes da simulação.
+func ValidateParameters(config Config) (BitLayout, error) {
+	layout, err := DeriveBitLayout(config)
+	if err != nil {
+		return BitLayout{}, err
+	}
+	if config.InputPath == "" {
+		return BitLayout{}, fmt.Errorf("informe o caminho do arquivo de entrada")
+	}
+	info, err := os.Stat(config.InputPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return BitLayout{}, fmt.Errorf("arquivo de entrada inexistente: %s", config.InputPath)
+		}
+		return BitLayout{}, fmt.Errorf("não foi possível acessar o arquivo: %w", err)
+	}
+	if info.IsDir() {
+		return BitLayout{}, fmt.Errorf("o caminho informado é um diretório, não um arquivo")
+	}
 
 	return layout, nil
 }

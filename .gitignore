@@ -1,6 +1,6 @@
 # Binários gerados localmente
-cache-sim
-cache-sim.exe
+/cache-sim
+/cache-sim.exe
 *.exe
 *.out
 *.test
@@ -12,6 +12,7 @@ coverage.out
 
 # Cache e diretórios temporários
 .cache/
+.gocache/
 tmp/
 temp/
 
