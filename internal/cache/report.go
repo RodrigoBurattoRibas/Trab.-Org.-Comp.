@@ -3,6 +3,9 @@ package cache
 import (
 	"fmt"
 	"io"
+	"strconv"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 func PrintBitLayout(out io.Writer, layout BitLayout) {
@@ -26,7 +29,7 @@ func printVerboseAccess(out io.Writer, fields AddressFields, hit bool, cacheMemo
 	fmt.Fprintf(out, "Particionamento: TAG=%s | Index=%s | OFFSET=%s\n", printableBits(fields.TagBits), printableBits(fields.IndexBits), printableBits(fields.OffsetBits))
 	fmt.Fprintf(out, "Tag: %d | Index: %d | Offset: %d\n", fields.Tag, fields.Index, fields.Offset)
 	fmt.Fprintf(out, "Resultado: %s\n", status)
-	PrintCacheState(out, cacheMemory)
+	PrintCacheState(out, cacheMemory, fields.Original)
 }
 
 func printableBits(bits string) string {
@@ -37,18 +40,39 @@ func printableBits(bits string) string {
 }
 
 // PrintCacheState imprime todos os conjuntos e linhas armazenados no momento da simulação.
-func PrintCacheState(out io.Writer, cacheMemory Cache) {
+func PrintCacheState(out io.Writer, cacheMemory Cache, currentAddress ...string) {
 	fmt.Fprintln(out, "Estado atual da cache:")
+	address := "-"
+	if len(currentAddress) > 0 && currentAddress[0] != "" {
+		address = currentAddress[0]
+	}
+
+	table := tablewriter.NewWriter(out)
+	table.SetHeader([]string{"Endereço lido", "Conjunto", "Linha", "Tag", "LastUsed", "LoadedAt"})
+	table.SetAlignment(tablewriter.ALIGN_CENTER)
+	table.SetHeaderAlignment(tablewriter.ALIGN_CENTER)
+
 	for setIndex, set := range cacheMemory.Sets {
-		fmt.Fprintf(out, "Conjunto %d:\n", setIndex)
 		for lineIndex, line := range set.Lines {
+			tag := "-"
+			lastUsed := "-"
+			loadedAt := "-"
 			if line.Valid {
-				fmt.Fprintf(out, "  Linha %d: V=1 Tag=%d LastUsed=%d LoadedAt=%d\n", lineIndex, line.Tag, line.LastUsed, line.LoadedAt)
-			} else {
-				fmt.Fprintf(out, "  Linha %d: V=0 Tag=-\n", lineIndex)
+				tag = strconv.FormatUint(line.Tag, 10)
+				lastUsed = strconv.FormatUint(line.LastUsed, 10)
+				loadedAt = strconv.FormatUint(line.LoadedAt, 10)
 			}
+			table.Append([]string{
+				address,
+				strconv.Itoa(setIndex),
+				strconv.Itoa(lineIndex),
+				tag,
+				lastUsed,
+				loadedAt,
+			})
 		}
 	}
+	table.Render()
 }
 
 // GenerateReport imprime a configuração final e os contadores de desempenho.

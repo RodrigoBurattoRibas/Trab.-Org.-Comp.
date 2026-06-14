@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+func TestReadAddressesReturnsOpenError(t *testing.T) {
+	_, err := ReadAddresses("arquivo-que-nao-existe.txt", 16)
+	if err == nil {
+		t.Fatalf("ReadAddresses deveria retornar erro ao abrir arquivo inexistente")
+	}
+	if !strings.Contains(err.Error(), "não foi possível abrir o arquivo") {
+		t.Fatalf("erro incorreto: got %q want conter %q", err.Error(), "não foi possível abrir o arquivo")
+	}
+}
+
 func TestReadAddressesSupportsHexDecimalCommentsAndBlankLines(t *testing.T) {
 	path := createTempAddressFile(t, `
 # comentário

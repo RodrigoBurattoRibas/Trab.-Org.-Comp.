@@ -3,6 +3,7 @@ package cache
 import (
 	"io"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -84,6 +85,45 @@ func TestSetAssociativeLRUAndFIFOReplacement(t *testing.T) {
 	}
 	if fifoResult.Hits != 2 || fifoResult.Misses != 3 {
 		t.Fatalf("resultado FIFO incorreto: hits=%d misses=%d", fifoResult.Hits, fifoResult.Misses)
+	}
+}
+
+func TestSimulateDirectMappingVerboseOutput(t *testing.T) {
+	config := Config{
+		CacheSize:     1,
+		BlockSize:     1,
+		Associativity: 1,
+		AddressBits:   8,
+		Policy:        PolicyLRU,
+		InputPath:     "teste",
+		Verbose:       true,
+	}
+	layout := BitLayout{OffsetBits: 0, IndexBits: 0, TagBits: 8, NumLines: 1, NumSets: 1}
+	addresses := []addressInput{{Raw: "0x01", Line: 1}}
+
+	var out strings.Builder
+	result, err := SimulateDirectMapping(config, layout, addresses, &out)
+	if err != nil {
+		t.Fatalf("SimulateDirectMapping retornou erro: %v", err)
+	}
+	if result.TotalAccesses != 1 || result.Hits != 0 || result.Misses != 1 {
+		t.Fatalf("resultado incorreto: acessos=%d hits=%d misses=%d", result.TotalAccesses, result.Hits, result.Misses)
+	}
+
+	text := out.String()
+	wantFragments := []string{
+		"Endereço original: 0x01",
+		"Endereço binário:  00000001",
+		"Resultado: Miss",
+		"Estado atual da cache:",
+		"ENDEREÇO LIDO",
+		"CONJUNTO",
+		"0x01",
+	}
+	for _, fragment := range wantFragments {
+		if !strings.Contains(text, fragment) {
+			t.Fatalf("saída verbose não contém %q\nsaída:\n%s", fragment, text)
+		}
 	}
 }
 

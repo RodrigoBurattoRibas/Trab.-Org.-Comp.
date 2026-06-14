@@ -1,7 +1,9 @@
-#Alunos
+# Alunos
 
 Rodrigo Buratto Ribas
+
 Erick Marlon Mafra
+
 Daniel Uesler Brito
 
 # Simulador de Memória Cache
